@@ -87,6 +87,8 @@ Files used by this manual Railway deployment:
 - [openclaw.railway.json5](e:/Workspace/HomeAIHub/deploy/openclaw/openclaw.railway.json5)
 - [start-openclaw-railway.sh](e:/Workspace/HomeAIHub/scripts/start-openclaw-railway.sh)
 
+If you see a Railway `502`, it usually means the container booted but the Gateway process failed or exited early. After each change, always check `Deployments` logs first.
+
 You should end up with a public HTTPS domain such as:
 
 ```text
@@ -203,3 +205,21 @@ For the final Railway topology, treat this repo as:
 - onboarding and pairing prototype
 
 and treat Railway-hosted OpenClaw as the real cloud control plane.
+
+## First check when Railway shows 502
+
+Open Railway and inspect `Deployments` for the OpenClaw service. The most useful clues are usually one of these:
+
+- `openclaw: command not found`
+- `OPENCLAW_GATEWAY_TOKEN is required`
+- auth / token / bind errors
+- invalid config parse errors
+- process exited before listening on the Railway port
+
+With the current repo, the intended boot command is now effectively:
+
+```bash
+openclaw gateway --allow-unconfigured --port $PORT --bind lan --auth token --token $OPENCLAW_GATEWAY_TOKEN
+```
+
+If the service still returns `502` after redeploy, copy the last 30 to 50 log lines from `Deployments` and use that as the next debugging step.

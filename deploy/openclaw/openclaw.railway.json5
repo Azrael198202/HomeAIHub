@@ -1,6 +1,8 @@
 {
   gateway: {
+    bind: "lan",
     auth: {
+      mode: "token",
       token: "${OPENCLAW_GATEWAY_TOKEN}",
     },
   },
