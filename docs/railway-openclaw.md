@@ -240,3 +240,17 @@ When the page reloads:
 - `WebSocket URL` stays as `wss://your-gateway.up.railway.app`
 - `Gateway Token` should be the same value as `OPENCLAW_GATEWAY_TOKEN`
 - `Password` can stay empty unless you configured password auth separately
+
+## Disable browser pairing for test environments
+
+If you want the Control UI to trust only the gateway token and skip browser device pairing, the current repo enables:
+
+```json5
+gateway: {
+  controlUi: {
+    dangerouslyDisableDeviceAuth: true
+  }
+}
+```
+
+This is intentionally a dangerous testing shortcut. It should not stay enabled for a long-lived public admin surface.
