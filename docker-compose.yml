@@ -1,0 +1,25 @@
+services:
+  box:
+    build:
+      context: .
+      dockerfile: Dockerfile.box
+    container_name: homeaihub-box
+    ports:
+      - "8090:8090"
+    volumes:
+      - ./data:/app/data
+
+  gateway:
+    build:
+      context: .
+      dockerfile: Dockerfile.gateway
+    container_name: homeaihub-gateway
+    depends_on:
+      - box
+    environment:
+      HOMEAIHUB_HOST: 0.0.0.0
+      HOMEAIHUB_PORT: 8080
+      HOMEAIHUB_BOX_HOST: box
+      HOMEAIHUB_BOX_PORT: 8090
+    ports:
+      - "8080:8080"

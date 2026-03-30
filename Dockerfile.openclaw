@@ -1,0 +1,7 @@
+FROM node:24-bookworm-slim
+WORKDIR /app
+COPY . /app
+RUN npm install -g openclaw@latest
+ENV PORT=8080
+ENV OPENCLAW_CONFIG_PATH=/app/deploy/openclaw/openclaw.railway.json5
+CMD ["bash", "/app/scripts/start-openclaw-railway.sh"]

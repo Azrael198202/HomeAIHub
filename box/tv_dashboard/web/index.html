@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Home AI Hub TV Dashboard</title>
+    <link rel="stylesheet" href="/dashboard-static/styles.css" />
+  </head>
+  <body>
+    <div class="shell">
+      <header class="topbar">
+        <div>
+          <div id="clock" class="time">--:--</div>
+          <div id="date" class="date">----</div>
+        </div>
+        <div class="topbar-right">
+          <div id="weather" class="pill">天气</div>
+          <div id="tvStatus" class="pill">TV</div>
+          <div id="status" class="pill status">ONLINE</div>
+        </div>
+      </header>
+
+      <main class="grid">
+        <section class="panel">
+          <div class="panel-title">今日日程</div>
+          <div id="scheduleList" class="schedule-list"></div>
+        </section>
+
+        <section class="panel">
+          <div class="panel-title">家庭时间轴</div>
+          <div id="timeline" class="timeline"></div>
+        </section>
+
+        <section class="panel">
+          <div class="panel-title">提醒与信息</div>
+          <div class="sub-title">提醒</div>
+          <div id="reminderList" class="card-list"></div>
+          <div class="sub-title">信息</div>
+          <div id="infoList" class="card-list"></div>
+        </section>
+      </main>
+
+      <footer class="footer">
+        <div id="voiceStatus">语音待机中</div>
+        <div id="footerSummary">今日共有 0 个提醒</div>
+        <div id="footerUpdate">系统运行正常</div>
+      </footer>
+
+      <div id="modal" class="modal hidden">
+        <div class="modal-card">
+          <div id="modalTitle" class="modal-title">提醒</div>
+          <div id="modalMessage" class="modal-message"></div>
+          <div id="modalMeta" class="modal-meta"></div>
+          <button id="modalAck">我知道了</button>
+        </div>
+      </div>
+    </div>
+
+    <script src="/dashboard-static/app.js"></script>
+  </body>
+</html>

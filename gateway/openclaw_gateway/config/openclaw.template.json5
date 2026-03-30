@@ -1,0 +1,64 @@
+{
+  gateway: {
+    port: 18789,
+  },
+
+  agents: {
+    defaults: {
+      userTimezone: "Asia/Tokyo",
+      timeFormat: "24",
+      skipBootstrap: false,
+      tools: {
+        profile: "coding",
+      },
+    },
+
+    list: [
+      {
+        id: "family-assistant",
+        default: true,
+        name: "Family Assistant",
+        workspace: "__PROJECT_ROOT__/gateway/openclaw_gateway/workspaces/family-assistant",
+        tools: {
+          profile: "coding",
+          allow: [
+            "read",
+            "write",
+            "edit",
+            "apply_patch",
+            "exec",
+            "process",
+            "nodes",
+            "gateway",
+            "sessions_list",
+            "sessions_history",
+            "sessions_send",
+            "session_status",
+          ],
+        },
+        subagents: {
+          allowAgents: ["home-automation-assistant"],
+        },
+      },
+      {
+        id: "home-automation-assistant",
+        name: "Home Automation Assistant",
+        workspace: "__PROJECT_ROOT__/gateway/openclaw_gateway/workspaces/home-automation-assistant",
+        tools: {
+          profile: "coding",
+          allow: [
+            "exec",
+            "process",
+            "nodes",
+            "gateway",
+            "read",
+            "sessions_list",
+            "sessions_history",
+            "session_status",
+          ],
+          deny: ["write", "edit", "apply_patch"],
+        },
+      },
+    ],
+  },
+}

@@ -1,0 +1,4 @@
+data/*.db
+gateway/openclaw_gateway/config/openclaw.local.json5
+__pycache__/
+*.pyc

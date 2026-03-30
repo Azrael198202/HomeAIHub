@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>HomeAIHub Mobile Pairing Mock</title>
+    <link rel="stylesheet" href="/mobile-static/styles.css" />
+  </head>
+  <body>
+    <main class="mobile-shell">
+      <section class="hero">
+        <div>
+          <p class="eyebrow">Flutter App Mock</p>
+          <h1>Pair And Control Box</h1>
+          <p class="summary">
+            This page simulates the mobile onboarding flow: see box status, read claim payload, claim the box, then use the box.
+          </p>
+        </div>
+        <a class="dashboard-link" href="/dashboard">Open TV Dashboard</a>
+      </section>
+
+      <section class="phone-card split">
+        <div>
+          <div class="card-title">Device Status</div>
+          <div id="deviceCard" class="list"></div>
+        </div>
+        <div>
+          <div class="card-title">Claim Payload</div>
+          <div id="pairingCard" class="list"></div>
+        </div>
+      </section>
+
+      <section class="phone-card split">
+        <div>
+          <div class="card-title">Claim Box</div>
+          <input id="ownerName" class="text-input" placeholder="Owner name" value="Mom" />
+          <input id="ownerId" class="text-input" placeholder="Owner user id" value="user-mom" />
+          <input id="familyName" class="text-input" placeholder="Family name" value="My Family" />
+          <input id="claimToken" class="text-input" placeholder="Paste claim token" />
+          <button id="claimBox">Claim Device</button>
+          <button id="unbindBox">Unbind Device</button>
+          <button id="resetBox">Reset Pairing Token</button>
+          <div id="claimResult" class="hint">No claim executed yet.</div>
+        </div>
+        <div>
+          <div class="card-title">Session</div>
+          <input id="actorName" class="text-input" placeholder="Actor name" value="Mom" />
+          <select id="actorRole" class="text-input">
+            <option value="parent">parent</option>
+            <option value="admin">admin</option>
+            <option value="child">child</option>
+            <option value="guest">guest</option>
+          </select>
+          <button id="openSession">Open Session</button>
+          <div id="sessionMeta" class="hint">No active session.</div>
+        </div>
+      </section>
+
+      <section class="phone-card split">
+        <div>
+          <div class="card-title">Family Assistant</div>
+          <textarea id="manualInput" placeholder="Manual event text"></textarea>
+          <button id="manualSubmit">Send intake.manual</button>
+          <textarea id="screenshotInput" placeholder="Screenshot text"></textarea>
+          <button id="screenshotSubmit">Send intake.screenshot</button>
+        </div>
+        <div>
+          <div class="card-title">Automation Assistant</div>
+          <button id="refreshDashboard">Send dashboard.refresh</button>
+          <button id="wakeTv">Send tv.wake</button>
+          <button id="playTts">Send tts.play</button>
+        </div>
+      </section>
+
+      <section class="phone-card split">
+        <div>
+          <div class="card-title">Node Registry</div>
+          <div id="nodeList" class="list"></div>
+        </div>
+        <div>
+          <div class="card-title">Recent Commands</div>
+          <div id="commandList" class="list"></div>
+        </div>
+      </section>
+    </main>
+    <script src="/mobile-static/app.js"></script>
+  </body>
+</html>

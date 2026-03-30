@@ -1,0 +1,7 @@
+FROM python:3.13-slim
+WORKDIR /app
+COPY . /app
+ENV HOMEAIHUB_BOX_HOST=0.0.0.0
+ENV HOMEAIHUB_BOX_PORT=8090
+ENV HOMEAIHUB_DB_NAME=data/home_ai_hub.db
+CMD ["python", "-m", "box"]
