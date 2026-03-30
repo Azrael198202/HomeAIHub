@@ -12,9 +12,6 @@
       userTimezone: "Asia/Tokyo",
       timeFormat: "24",
       skipBootstrap: false,
-      tools: {
-        profile: "coding",
-      },
     },
 
     list: [
