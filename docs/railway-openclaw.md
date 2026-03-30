@@ -65,8 +65,9 @@ In Railway UI:
 6. Go to `Settings`.
 7. Set the service to build from [Dockerfile.openclaw](e:/Workspace/HomeAIHub/Dockerfile.openclaw).
 8. Go to `Variables` and add `OPENCLAW_GATEWAY_TOKEN` with a strong random value.
-9. Keep `PORT` as Railway default or set it explicitly to `8080`.
-10. Redeploy the service.
+9. Add `OPENCLAW_CONTROL_UI_ALLOWED_ORIGIN=https://homeaihub-production.up.railway.app` or your actual Railway domain.
+10. Keep `PORT` as Railway default or set it explicitly to `8080`.
+11. Redeploy the service.
 11. Go to `Settings -> Networking`.
 12. In `Public Networking`, click `Generate Domain`.
 13. Copy the generated domain.
@@ -223,3 +224,19 @@ openclaw gateway --allow-unconfigured --port $PORT --bind lan --auth token --tok
 ```
 
 If the service still returns `502` after redeploy, copy the last 30 to 50 log lines from `Deployments` and use that as the next debugging step.
+
+## Control UI origin error
+
+If the dashboard says `origin not allowed`, add this Railway variable:
+
+```env
+OPENCLAW_CONTROL_UI_ALLOWED_ORIGIN=https://your-gateway.up.railway.app
+```
+
+Then redeploy the service.
+
+When the page reloads:
+
+- `WebSocket URL` stays as `wss://your-gateway.up.railway.app`
+- `Gateway Token` should be the same value as `OPENCLAW_GATEWAY_TOKEN`
+- `Password` can stay empty unless you configured password auth separately

@@ -5,6 +5,9 @@
       mode: "token",
       token: "${OPENCLAW_GATEWAY_TOKEN}",
     },
+    controlUi: {
+      allowedOrigins: ["${OPENCLAW_CONTROL_UI_ALLOWED_ORIGIN}"],
+    },
   },
 
   agents: {
