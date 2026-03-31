@@ -1,256 +1,196 @@
-# Railway OpenClaw Deployment
+# Railway Public API Deployment
 
-This is the recommended production shape for HomeAIHub:
+This repo's Railway deployment no longer needs OpenClaw if Railway is only used as the public app API.
+
+Recommended production shape:
 
 ```text
 Flutter App / Web App
-  -> OpenClaw Gateway on Railway
-  -> HomeAIHub box at home as OpenClaw node
-  -> local box services on the home LAN
+  -> Railway Public API
+  -> queued relay jobs
+
+HomeAIHub Box at home
+  -> outbound heartbeat to Railway
+  -> poll pending relay jobs
+  -> local intake and acknowledgement
 ```
 
-## Why this is the right split
+## When OpenClaw is not needed on Railway
 
-- Railway hosts the public control plane.
-- The home box stays in the user's house.
-- The box makes an outbound connection to Gateway, so no home port forwarding is required.
-- Mobile clients only need the Railway domain.
+If Railway only needs to do these jobs:
 
-According to current OpenClaw docs:
+- expose the public app API
+- return box pairing and status information
+- relay text, photo, and voice payloads
+- delete temporary transfer files after the box confirms receipt
 
-- the Gateway is the WS + control UI server
-- nodes connect to the Gateway and use device pairing
-- node auth prefers `OPENCLAW_GATEWAY_TOKEN`
-- TLS gateways require `openclaw node run --tls`
+then Railway does not need to run OpenClaw.
 
-Sources:
+In this repo, the Railway service should simply run the Python gateway.
 
-- https://docs.openclaw.ai/start/quickstart
-- https://docs.openclaw.ai/nodes
-- https://docs.openclaw.ai/gateway/configuration
-- https://docs.railway.com/deploy/services
-- https://docs.railway.com/public-networking
-- https://docs.railway.com/reference/tcp-proxy
+## Public endpoints
 
-## Recommended Railway approach
+- `GET /api/railway/box`
+- `GET /api/railway/box/status`
+- `GET /api/railway/box/link`
+- `GET /api/railway/boxes`
+- `GET /api/railway/relay/status?relay_id=...`
+- `POST /api/railway/relay/message`
+- `POST /api/railway/relay/photo`
+- `POST /api/railway/relay/voice`
+- `POST /api/railway/box/register`
+- `POST /api/railway/box/heartbeat`
+- `GET /api/railway/relay/pending?device_id=...`
+- `POST /api/railway/relay/ack`
 
-As of 2026-03-30, Railway's create-project UI may not show an OpenClaw template directly.
-Use a manual service deployment from this GitHub repository instead.
-Do not deploy the transitional Python `gateway/` service to Railway as the final control plane.
+## Relay behavior
 
-Use Railway for:
+- external apps talk only to Railway
+- Railway writes pending relay jobs into its local queue
+- Railway may create a short-lived temp file during transfer
+- the home box initiates outbound sync to Railway
+- the home box polls pending relay jobs, processes them locally, and posts an acknowledgement
+- once Railway receives the acknowledgement, it deletes the temp file
+- the initial app response includes `relay_id` and queue status
+- the app can query `GET /api/railway/relay/status?relay_id=...` to confirm delivery
 
-- OpenClaw Gateway
-- generated public domain
-- persistent config/data volume if your OpenClaw setup uses one
+Example payload:
 
-Keep at home:
-
-- `python -m box`
-- `openclaw node run ...`
-- TV dashboard
-- OCR / parser / TTS / local DB services
-
-## Railway setup sequence
-
-### 1. Deploy the real OpenClaw Gateway to Railway
-
-In Railway UI:
-
-1. Sign in to Railway.
-2. Click `New Project`.
-3. Choose `GitHub Repository`.
-4. Select this repository.
-5. After the first service is created, open that service.
-6. Go to `Settings`.
-7. Set the service to build from [Dockerfile.openclaw](e:/Workspace/HomeAIHub/Dockerfile.openclaw).
-8. Go to `Variables` and add `OPENCLAW_GATEWAY_TOKEN` with a strong random value.
-9. Add `OPENCLAW_CONTROL_UI_ALLOWED_ORIGIN=https://homeaihub-production.up.railway.app` or your actual Railway domain.
-10. Keep `PORT` as Railway default or set it explicitly to `8080`.
-11. Redeploy the service.
-11. Go to `Settings -> Networking`.
-12. In `Public Networking`, click `Generate Domain`.
-13. Copy the generated domain.
-14. Open that domain in the browser.
-15. Complete the OpenClaw setup / onboarding flow.
-
-Useful Railway sections while doing this:
-
-- `Deployments`: inspect build and boot logs
-- `Settings -> Source`: select the repo source and Dockerfile path
-- `Settings -> Networking`: domain and proxy settings
-- `Variables`: set `OPENCLAW_GATEWAY_TOKEN`
-- `Metrics`: basic health checks after deploy
-
-Files used by this manual Railway deployment:
-
-- [Dockerfile.openclaw](e:/Workspace/HomeAIHub/Dockerfile.openclaw)
-- [openclaw.railway.json5](e:/Workspace/HomeAIHub/deploy/openclaw/openclaw.railway.json5)
-- [start-openclaw-railway.sh](e:/Workspace/HomeAIHub/scripts/start-openclaw-railway.sh)
-
-If you see a Railway `502`, it usually means the container booted but the Gateway process failed or exited early. After each change, always check `Deployments` logs first.
-
-You should end up with a public HTTPS domain such as:
-
-```text
-https://your-gateway.up.railway.app
-```
-
-If Railway asks for a raw TCP proxy instead of HTTP routing, expose the Gateway internal port using Railway TCP Proxy and connect the node to the generated proxy host and port.
-
-### 2. Open the OpenClaw setup page
-
-Open the Railway domain in a browser and complete the OpenClaw setup / onboarding wizard.
-
-The OpenClaw quickstart currently recommends:
-
-```bash
-openclaw onboard --install-daemon
-```
-
-On Railway you will normally complete the equivalent setup in the deployed environment and UI.
-
-### 3. Create or copy the Gateway token
-
-From the OpenClaw setup or config, capture the Gateway auth token.
-
-A practical UI-oriented sequence is:
-
-1. Finish Gateway onboarding.
-2. Open the OpenClaw control UI or config page.
-3. Find the gateway auth token or credentials section.
-4. Copy the token into a password manager or secure note.
-5. Do not embed the token in the mobile app source.
-6. Use it only on trusted node hosts or backend services.
-
-OpenClaw docs show that config values can reference env vars such as:
-
-```json5
+```json
 {
-  gateway: { auth: { token: "${OPENCLAW_GATEWAY_TOKEN}" } }
+  "text": "package left at the front door",
+  "filename": "doorbell.jpg",
+  "mime_type": "image/jpeg",
+  "content_base64": "<base64-data>"
 }
 ```
 
-For the home box node, the simplest path is to set:
+## Railway deployment files
 
-```text
-OPENCLAW_GATEWAY_TOKEN=<your token>
+Use these files for Railway:
+
+- [Dockerfile.railway](e:/pw/HomeAIHub/Dockerfile.railway)
+- [start-railway-gateway.sh](e:/pw/HomeAIHub/scripts/start-railway-gateway.sh)
+
+The old OpenClaw-specific Railway files are no longer required for this deployment mode.
+
+## Recommended Railway variables
+
+```env
+HOMEAIHUB_RAILWAY_PUBLIC_BASE_URL=https://your-api.up.railway.app
+HOMEAIHUB_GATEWAY_BASE_URL=https://your-api.up.railway.app
+HOMEAIHUB_HOST=0.0.0.0
+HOMEAIHUB_PORT=8080
+PORT=8080
 ```
 
-### 4. Start the local HomeAIHub box service at home
+If Railway needs a writable temp location:
 
-On the home box machine:
+```env
+HOMEAIHUB_RELAY_TEMP_DIR=/tmp/homeaihub-relay
+HOMEAIHUB_BOX_SHARED_TOKEN=replace-with-a-long-random-secret
+HOMEAIHUB_RAILWAY_CLEANUP_INTERVAL_SECONDS=60
+HOMEAIHUB_RAILWAY_JOB_RETENTION_SECONDS=86400
+HOMEAIHUB_RAILWAY_BOX_STALE_AFTER_SECONDS=90
+```
+
+## Railway setup
+
+1. Create a new Railway project from this repository.
+2. Set the service to build from [Dockerfile.railway](e:/pw/HomeAIHub/Dockerfile.railway).
+3. Add the environment variables listed above.
+4. Generate a public domain in Railway Networking.
+5. Set `HOMEAIHUB_RAILWAY_PUBLIC_BASE_URL` and `HOMEAIHUB_GATEWAY_BASE_URL` to that domain.
+6. Redeploy.
+
+## Home box setup
+
+On the home box machine, start the box service with the Railway API base URL:
+
+```env
+HOMEAIHUB_RAILWAY_API_BASE_URL=https://your-api.up.railway.app
+HOMEAIHUB_BOX_SYNC_INTERVAL_SECONDS=10
+HOMEAIHUB_BOX_SHARED_TOKEN=replace-with-a-long-random-secret
+```
+
+Then run:
 
 ```bash
 python -m box
 ```
 
-This keeps OCR, parsing, reminders, dashboard rendering, and the local database on the home device.
+The box process will:
 
-### 5. Connect the home box to Railway as a node
+- register itself with Railway
+- send heartbeats
+- poll pending relay jobs
+- process them locally
+- acknowledge completed jobs so Railway can delete temp files
 
-Windows PowerShell:
+## Important limitation
 
-```powershell
-./scripts/start-openclaw-node.ps1 -GatewayHost your-gateway.up.railway.app -GatewayPort 443 -Tls -GatewayToken "<your token>"
-```
+This polling-based setup removes the need for Railway to connect inbound to the home box.
+If you later want agent orchestration or node execution, OpenClaw can still be added back as a separate concern instead of being the Railway runtime itself.
 
-The script now supports:
+## Curl examples
 
-- `-Tls` for HTTPS / WSS gateways
-- `-GatewayToken` to export `OPENCLAW_GATEWAY_TOKEN` before launch
-
-Equivalent raw CLI:
-
-```bash
-export OPENCLAW_GATEWAY_TOKEN="<your token>"
-openclaw node run --host your-gateway.up.railway.app --port 443 --tls --display-name "HomeAIHub Mini Host"
-```
-
-If Railway gave you a TCP proxy endpoint instead, use that host and port instead of `443`.
-
-### 6. Approve the node pairing in OpenClaw
-
-OpenClaw node pairing is still required.
-Approve the incoming node from the Gateway side.
-
-After approval, your home box becomes a controllable node under the Railway-hosted Gateway.
-
-## How HomeAIHub should use this
-
-At runtime the split should become:
-
-```text
-Mobile app
-  -> Railway OpenClaw Gateway
-  -> HomeAIHub node
-  -> local box service on 127.0.0.1:8090
-```
-
-That means:
-
-- app traffic goes to Railway
-- local box services stay private to the home device
-- OpenClaw agents or node tools trigger local actions on the box
-
-## Important current limitation in this repo
-
-The current custom Python `gateway/` code still assumes it can call `box` over direct HTTP.
-That is fine for local MVP runs, but it is not the final product topology.
-
-For the final Railway topology, treat this repo as:
-
-- local box runtime
-- agent workspaces
-- OpenClaw node client startup
-- onboarding and pairing prototype
-
-and treat Railway-hosted OpenClaw as the real cloud control plane.
-
-## First check when Railway shows 502
-
-Open Railway and inspect `Deployments` for the OpenClaw service. The most useful clues are usually one of these:
-
-- `openclaw: command not found`
-- `OPENCLAW_GATEWAY_TOKEN is required`
-- auth / token / bind errors
-- invalid config parse errors
-- process exited before listening on the Railway port
-
-With the current repo, the intended boot command is now effectively:
+Query the current public box status:
 
 ```bash
-openclaw gateway --allow-unconfigured --port $PORT --bind lan --auth token --token $OPENCLAW_GATEWAY_TOKEN
+curl https://your-api.up.railway.app/api/railway/box/status
 ```
 
-If the service still returns `502` after redeploy, copy the last 30 to 50 log lines from `Deployments` and use that as the next debugging step.
+Queue a text relay job:
 
-## Control UI origin error
-
-If the dashboard says `origin not allowed`, add this Railway variable:
-
-```env
-OPENCLAW_CONTROL_UI_ALLOWED_ORIGIN=https://your-gateway.up.railway.app
+```bash
+curl -X POST https://your-api.up.railway.app/api/railway/relay/message \
+  -H "Content-Type: application/json" \
+  -d '{
+    "text": "mom dentist tomorrow 3pm",
+    "filename": "message.txt",
+    "mime_type": "text/plain"
+  }'
 ```
 
-Then redeploy the service.
+Queue a photo relay job:
 
-When the page reloads:
-
-- `WebSocket URL` stays as `wss://your-gateway.up.railway.app`
-- `Gateway Token` should be the same value as `OPENCLAW_GATEWAY_TOKEN`
-- `Password` can stay empty unless you configured password auth separately
-
-## Disable browser pairing for test environments
-
-If you want the Control UI to trust only the gateway token and skip browser device pairing, the current repo enables:
-
-```json5
-gateway: {
-  controlUi: {
-    dangerouslyDisableDeviceAuth: true
-  }
-}
+```bash
+curl -X POST https://your-api.up.railway.app/api/railway/relay/photo \
+  -H "Content-Type: application/json" \
+  -d '{
+    "text": "front door snapshot",
+    "filename": "door.jpg",
+    "mime_type": "image/jpeg",
+    "content_base64": "<base64-data>"
+  }'
 ```
 
-This is intentionally a dangerous testing shortcut. It should not stay enabled for a long-lived public admin surface.
+Check relay status:
+
+```bash
+curl "https://your-api.up.railway.app/api/railway/relay/status?relay_id=<relay-id>"
+```
+
+Manual box registration test:
+
+```bash
+curl -X POST https://your-api.up.railway.app/api/railway/box/register \
+  -H "Content-Type: application/json" \
+  -H "X-HomeAIHub-Box-Token: replace-with-a-long-random-secret" \
+  -d '{
+    "device_id": "hub-demo-001",
+    "device_name": "HomeAIHub Box",
+    "pairing_status": "paired",
+    "owner_name": "Mom",
+    "family_id": "family-demo",
+    "box_status": "online",
+    "dashboard_path": "/dashboard"
+  }'
+```
+
+Manual box polling test:
+
+```bash
+curl -H "X-HomeAIHub-Box-Token: replace-with-a-long-random-secret" \
+  "https://your-api.up.railway.app/api/railway/relay/pending?device_id=hub-demo-001"
+```

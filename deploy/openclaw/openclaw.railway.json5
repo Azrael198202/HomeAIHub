@@ -20,18 +20,34 @@
 
     list: [
       {
-        id: "family-assistant",
+        id: "family-intake-agent",
         default: true,
-        name: "Family Assistant",
-        workspace: "/app/gateway/openclaw_gateway/workspaces/family-assistant",
+        name: "Family Intake Agent",
+        workspace: "/app/gateway/openclaw_gateway/workspaces/family-intake-agent",
         tools: {
           profile: "coding",
         },
       },
       {
-        id: "home-automation-assistant",
-        name: "Home Automation Assistant",
-        workspace: "/app/gateway/openclaw_gateway/workspaces/home-automation-assistant",
+        id: "household-dashboard-agent",
+        name: "Household Dashboard Agent",
+        workspace: "/app/gateway/openclaw_gateway/workspaces/household-dashboard-agent",
+        tools: {
+          profile: "coding",
+        },
+      },
+      {
+        id: "voice-automation-agent",
+        name: "Voice Automation Agent",
+        workspace: "/app/gateway/openclaw_gateway/workspaces/voice-automation-agent",
+        tools: {
+          profile: "coding",
+        },
+      },
+      {
+        id: "home-orchestrator-agent",
+        name: "Home Orchestrator Agent",
+        workspace: "/app/gateway/openclaw_gateway/workspaces/home-orchestrator-agent",
         tools: {
           profile: "coding",
         },

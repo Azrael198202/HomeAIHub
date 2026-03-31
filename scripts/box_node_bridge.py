@@ -40,6 +40,8 @@ def build_parser() -> argparse.ArgumentParser:
     sub.add_parser("device-status")
     sub.add_parser("pairing-payload")
     sub.add_parser("dashboard")
+    sub.add_parser("hub-overview")
+    sub.add_parser("voice-status")
     sub.add_parser("mobile-status")
     sub.add_parser("refresh-dashboard")
     sub.add_parser("wake-tv")
@@ -50,8 +52,21 @@ def build_parser() -> argparse.ArgumentParser:
     screenshot = sub.add_parser("screenshot-intake")
     screenshot.add_argument("text")
 
+    photo = sub.add_parser("photo-intake")
+    photo.add_argument("text")
+
+    voice = sub.add_parser("voice-intake")
+    voice.add_argument("text")
+
     tts = sub.add_parser("tts")
     tts.add_argument("message")
+
+    announce = sub.add_parser("announce")
+    announce.add_argument("message")
+    announce.add_argument("--priority", default="normal")
+
+    wake = sub.add_parser("voice-wake")
+    wake.add_argument("transcript")
 
     claim = sub.add_parser("claim-device")
     claim.add_argument("--actor-user-id", default="user-demo")
@@ -80,6 +95,10 @@ def dispatch(args: argparse.Namespace) -> dict:
         return request_json("GET", "/api/box/pairing/payload")
     if args.command == "dashboard":
         return request_json("GET", "/api/box/dashboard")
+    if args.command == "hub-overview":
+        return request_json("GET", "/api/box/hub/overview")
+    if args.command == "voice-status":
+        return request_json("GET", "/api/box/voice/status")
     if args.command == "mobile-status":
         return request_json("GET", "/api/box/mobile-status")
     if args.command == "refresh-dashboard":
@@ -90,8 +109,20 @@ def dispatch(args: argparse.Namespace) -> dict:
         return request_json("POST", "/api/box/intake/manual", {"text": args.text})
     if args.command == "screenshot-intake":
         return request_json("POST", "/api/box/intake/screenshot", {"text": args.text})
+    if args.command == "photo-intake":
+        return request_json("POST", "/api/box/intake/photo", {"text": args.text})
+    if args.command == "voice-intake":
+        return request_json("POST", "/api/box/intake/voice", {"text": args.text})
     if args.command == "tts":
         return request_json("POST", "/api/box/automation/play-tts", {"message": args.message})
+    if args.command == "announce":
+        return request_json(
+            "POST",
+            "/api/box/automation/announce",
+            {"message": args.message, "priority": args.priority},
+        )
+    if args.command == "voice-wake":
+        return request_json("POST", "/api/box/voice/wake", {"transcript": args.transcript})
     if args.command == "claim-device":
         return request_json(
             "POST",

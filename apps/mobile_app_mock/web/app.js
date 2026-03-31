@@ -30,6 +30,7 @@ function render(status, overview, pairing) {
     listItem("Claim token", pairing.claim_token),
     listItem("Expires at", pairing.claim_expires_at),
     listItem("Claim URL", pairing.claim_url),
+    listItem("Transport", pairing.transport),
     listItem("Pairing ready", pairing.paired ? "No" : "Yes"),
   ].join("");
 
@@ -122,17 +123,35 @@ document.getElementById("resetBox").onclick = () => resetBox();
 document.getElementById("manualSubmit").onclick = async () => {
   const text = document.getElementById("manualInput").value.trim();
   if (!text) return;
-  await dispatch("family-assistant", "intake.manual", { text });
+  requireSession();
+  await api("/api/gateway/intake/text", {
+    method: "POST",
+    body: JSON.stringify({ session_id: state.sessionId, text }),
+  });
   document.getElementById("manualInput").value = "";
 };
-document.getElementById("screenshotSubmit").onclick = async () => {
-  const text = document.getElementById("screenshotInput").value.trim();
+document.getElementById("photoSubmit").onclick = async () => {
+  const text = document.getElementById("photoInput").value.trim();
   if (!text) return;
-  await dispatch("family-assistant", "intake.screenshot", { text });
-  document.getElementById("screenshotInput").value = "";
+  requireSession();
+  await api("/api/gateway/intake/photo", {
+    method: "POST",
+    body: JSON.stringify({ session_id: state.sessionId, text }),
+  });
+  document.getElementById("photoInput").value = "";
 };
-document.getElementById("refreshDashboard").onclick = () => dispatch("home-automation-assistant", "dashboard.refresh", {});
-document.getElementById("wakeTv").onclick = () => dispatch("home-automation-assistant", "tv.wake", {});
-document.getElementById("playTts").onclick = () => dispatch("home-automation-assistant", "tts.play", { message: "Time to leave in 15 minutes" });
+document.getElementById("voiceSubmit").onclick = async () => {
+  const text = document.getElementById("voiceInput").value.trim();
+  if (!text) return;
+  requireSession();
+  await api("/api/gateway/intake/voice", {
+    method: "POST",
+    body: JSON.stringify({ session_id: state.sessionId, text }),
+  });
+  document.getElementById("voiceInput").value = "";
+};
+document.getElementById("refreshDashboard").onclick = () => dispatch("household-dashboard-agent", "dashboard.refresh", {});
+document.getElementById("wakeTv").onclick = () => dispatch("voice-automation-agent", "tv.wake", {});
+document.getElementById("playTts").onclick = () => dispatch("voice-automation-agent", "announce.play", { message: "Time to leave in 15 minutes", priority: "high" });
 
 refresh();

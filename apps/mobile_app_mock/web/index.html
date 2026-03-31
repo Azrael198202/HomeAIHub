@@ -13,7 +13,7 @@
           <p class="eyebrow">Flutter App Mock</p>
           <h1>Pair And Control Box</h1>
           <p class="summary">
-            This page simulates the mobile onboarding flow: see box status, read claim payload, claim the box, then use the box.
+            This page simulates the app-side gateway flow: discover a pairable home box, claim it through the gateway, then relay text, photo, and voice data to the home box.
           </p>
         </div>
         <a class="dashboard-link" href="/dashboard">Open TV Dashboard</a>
@@ -58,11 +58,13 @@
 
       <section class="phone-card split">
         <div>
-          <div class="card-title">Family Assistant</div>
-          <textarea id="manualInput" placeholder="Manual event text"></textarea>
-          <button id="manualSubmit">Send intake.manual</button>
-          <textarea id="screenshotInput" placeholder="Screenshot text"></textarea>
-          <button id="screenshotSubmit">Send intake.screenshot</button>
+          <div class="card-title">Remote Intake Via Gateway</div>
+          <textarea id="manualInput" placeholder="Text message for the home box"></textarea>
+          <button id="manualSubmit">Relay text</button>
+          <textarea id="photoInput" placeholder="Photo OCR text or photo description"></textarea>
+          <button id="photoSubmit">Relay photo</button>
+          <textarea id="voiceInput" placeholder="Voice transcript"></textarea>
+          <button id="voiceSubmit">Relay voice</button>
         </div>
         <div>
           <div class="card-title">Automation Assistant</div>

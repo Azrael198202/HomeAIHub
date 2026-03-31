@@ -3,18 +3,20 @@
 HomeAIHub is structured around the product flow below:
 
 ```text
-HomeAIHub Box
-  -> joins the home network
-  -> connects to Gateway / control plane
-  -> exposes local execution services
-
 Mobile App
-  -> scans the box QR / claim payload
-  -> claims the box through Gateway
-  -> reads device status and sends commands
+  -> talks only to Gateway
+  -> finds pairable home boxes
+  -> claims a box through Gateway
+  -> uploads text / photo / voice data through Gateway
+
+HomeAIHub Box
+  -> stays inside the home network
+  -> connects outward to Gateway / control plane
+  -> receives relayed data from Gateway
+  -> runs OCR / parsing / reminders / TV dashboard / TTS locally
 ```
 
-The current repo is a runnable MVP of that flow:
+The current repo is a runnable MVP of that split:
 
 - `box/` is the local execution layer
 - `gateway/` is the control-plane-facing access layer
@@ -48,8 +50,10 @@ gateway/
     config/
       openclaw.template.json5
     workspaces/
-      family-assistant/
-      home-automation-assistant/
+      family-intake-agent/
+      household-dashboard-agent/
+      voice-automation-agent/
+      home-orchestrator-agent/
 
 scripts/
   install-openclaw.ps1
@@ -61,20 +65,38 @@ scripts/
   start-box-service.ps1
 ```
 
+## Product responsibility split
+
+- `gateway/` is the app-facing edge for phones and tablets.
+- `gateway/` is responsible for box discovery metadata, pairing, session creation, and remote intake relay.
+- `box/` is the home-side core that stores data, classifies it, creates reminders, drives the TV dashboard, and exposes local device actions.
+- TV, HDMI dashboard, voice broadcast, wake-word follow-up, and future smart-home orchestration belong to `box/`, not `gateway/`.
+- In production, Railway can run the Python `gateway/` directly as the public API edge. OpenClaw is optional and should be treated as a separate orchestration concern, not the default Railway runtime.
+
+## Box runtime modules
+
+- `Hub Orchestrator`: central route layer for dashboard, voice wake, and automation.
+- `Always-on TV Dashboard`: HDMI family board with alerts, reminders, and orchestration state.
+- `Voice Wake Loop`: passive listening state, wake-phrase routing, and spoken alert execution.
+- `OpenClaw Agent Surface`: intake agent, dashboard agent, voice automation agent, and home orchestrator agent.
+
+See [box-architecture.md](e:/Workspace/HomeAIHub/docs/box-architecture.md) for the current module diagram and next-step refactor checklist.
+
 ## Pairing logic implemented in this repo
 
 This MVP already includes the product-style onboarding flow:
 
 1. The box boots and creates a device record.
-2. The box exposes a short-lived claim token.
+2. The box exposes a short-lived claim token and pairing metadata.
 3. The TV dashboard switches to pairing mode when the box is unclaimed.
 4. The mobile app mock fetches the claim payload from Gateway.
 5. The user claims the box with `device_id + claim_token`.
 6. After claim succeeds, the dashboard switches from onboarding to family dashboard mode.
 7. A paired device can be unbound and returned to onboarding mode.
-8. Mobile commands continue to go through Gateway, not directly to the box.
+8. Mobile uploads continue to go through Gateway, not directly to the box.
+9. Gateway relays the payload to the home box, where local services classify and store it.
 
-Current device model:
+Current MVP device model:
 
 - one demo device id: `hub-demo-001`
 - one demo family id after claim: `family-demo`
@@ -123,7 +145,8 @@ After claim:
 - `/dashboard` switches to family dashboard mode
 - `/mobile` shows device owner and paired status
 - `/mobile` can unbind the device and send it back to pairing mode
-- manual intake, screenshot intake, TTS, and TV actions still work through Gateway
+- text, photo, and voice intake still go through Gateway and land in the local box database
+- TTS and TV actions remain box-side capabilities triggered through Gateway
 
 ## Main pages
 
@@ -155,6 +178,9 @@ Gateway endpoints:
 - `POST /api/gateway/device/unbind`
 - `POST /api/gateway/device/reset`
 - `GET /api/gateway/family/status`
+- `POST /api/gateway/intake/text`
+- `POST /api/gateway/intake/photo`
+- `POST /api/gateway/intake/voice`
 - `POST /api/gateway/control-plane/sessions/open`
 - `POST /api/gateway/control-plane/dispatch`
 
@@ -169,51 +195,28 @@ Gateway endpoints:
 7. Send a manual item like `today 3pm mom dentist`.
 8. Trigger `Play TTS` or `Wake TV`.
 
-## Real OpenClaw integration
+## Railway deployment
 
-The repo also includes scaffolding for replacing the transitional Python gateway with real OpenClaw as the control plane.
+The default Railway deployment in this repo is now the Python public API gateway, not OpenClaw.
 
 Recommended production deployment:
 
-- Railway hosts the real OpenClaw Gateway
+- Railway runs `python -m home_ai_hub`
 - the home box runs `python -m box` locally
-- the home box joins the Railway Gateway as an OpenClaw node
+- the app talks to Railway for pairing, status, and relay APIs
+- the home box sends outbound heartbeats to Railway and polls pending relay jobs
+- Railway sync endpoints are protected with `HOMEAIHUB_BOX_SHARED_TOKEN`
 
-See the full Railway guide here:
+See the Railway guide here:
 
 - [railway-openclaw.md](e:/Workspace/HomeAIHub/docs/railway-openclaw.md)
-- [openclaw-node-actions.md](e:/Workspace/HomeAIHub/docs/openclaw-node-actions.md)
+- [Dockerfile.railway](e:/Workspace/HomeAIHub/Dockerfile.railway)
+- [start-railway-gateway.sh](e:/Workspace/HomeAIHub/scripts/start-railway-gateway.sh)
+
+Compatibility aliases are still present if an existing Railway service points at them:
+
 - [Dockerfile.openclaw](e:/Workspace/HomeAIHub/Dockerfile.openclaw)
 - [start-openclaw-railway.sh](e:/Workspace/HomeAIHub/scripts/start-openclaw-railway.sh)
-
-### Official OpenClaw install commands
-
-Verified against current official docs:
-
-- Windows PowerShell:
-
-```powershell
-iwr -useb https://openclaw.ai/install.ps1 | iex
-```
-
-- macOS / Linux / WSL2:
-
-```bash
-curl -fsSL https://openclaw.ai/install.sh | bash
-```
-
-Sources:
-
-- https://docs.openclaw.ai/install/index
-- https://docs.openclaw.ai/install/installer
-- https://docs.openclaw.ai/start/getting-started
-- https://docs.openclaw.ai/platforms/windows
-
-Current docs also indicate:
-
-- Node 24 is recommended
-- Node 22 LTS is still supported for compatibility
-- On Windows, WSL2 is still the recommended path
 
 ### Platform choice
 

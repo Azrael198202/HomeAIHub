@@ -61,7 +61,7 @@ class EventParserService:
             priority=priority,
             source_type=source_type,
             source_text=source_text.strip(),
-            requires_confirmation=(source_type == "screenshot"),
+            requires_confirmation=(source_type in {"screenshot", "photo"}),
         )
 
     def _extract_person(self, text: str) -> str:
@@ -252,6 +252,13 @@ class TVDashboardService:
                 "tv_power": states.get("tv_power", "on"),
                 "tv_input": states.get("tv_input", "dashboard"),
             },
+            "hero_alert": notifications[0] if notifications else None,
+            "system_tiles": [
+                {"label": "Home Mode", "value": states.get("home_mode", "family-hub"), "tone": "green"},
+                {"label": "Dashboard", "value": states.get("dashboard_mode", "always_on"), "tone": "blue"},
+                {"label": "Voice", "value": states.get("voice_listener_state", "passive"), "tone": "orange"},
+                {"label": "Agent", "value": states.get("active_agent", "household-dashboard-agent"), "tone": "pink"},
+            ],
             "today_schedule": calendar_items,
             "timeline": [
                 {
@@ -268,6 +275,8 @@ class TVDashboardService:
                 "voice_status": states.get("tts_last_message", "\u8bed\u97f3\u5f85\u673a\u4e2d"),
                 "summary": f"\u4eca\u65e5\u5171\u6709 {len(reminder_items)} \u4e2a\u63d0\u9192",
                 "recent_update": notifications[0]["message"] if notifications else "\u7cfb\u7edf\u8fd0\u884c\u6b63\u5e38",
+                "active_agent": states.get("active_agent", "household-dashboard-agent"),
+                "last_route": states.get("orchestrator_last_route", "dashboard.idle"),
             },
         }
 

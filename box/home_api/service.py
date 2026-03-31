@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 import json
 import secrets
 import uuid
@@ -109,6 +110,7 @@ class HomeAPI:
         tts_service,
         tv_control_service,
         tv_dashboard_service,
+        hub_orchestrator_service,
     ) -> None:
         self.repository = repository
         self.ocr_service = ocr_service
@@ -119,12 +121,15 @@ class HomeAPI:
         self.tts_service = tts_service
         self.tv_control_service = tv_control_service
         self.tv_dashboard_service = tv_dashboard_service
+        self.hub_orchestrator_service = hub_orchestrator_service
 
     def bootstrap(self) -> None:
         if self.repository.is_empty():
             self.repository.seed_events(build_seed_data())
         self.repository.register_node("mini-host", "node")
         self.repository.register_node("tv-dashboard", "device")
+        self.repository.register_node("voice-listener", "service")
+        self.repository.register_node("home-orchestrator", "service")
         for capability in (
             "ocr.recognize",
             "calendar.query",
@@ -134,12 +139,21 @@ class HomeAPI:
             "tv.wake",
             "tv.dashboard.refresh",
             "tv.dashboard.render",
+            "voice.listen",
+            "voice.wake",
+            "orchestrator.route",
+            "orchestrator.announce",
             "device.claim",
             "device.status",
         ):
             self.repository.register_capability("mini-host", capability)
         self.repository.register_capability("tv-dashboard", "display.render")
         self.repository.register_capability("tv-dashboard", "display.popup")
+        self.repository.register_capability("voice-listener", "voice.listen")
+        self.repository.register_capability("voice-listener", "voice.wake")
+        self.repository.register_capability("home-orchestrator", "orchestrator.route")
+        self.repository.register_capability("home-orchestrator", "orchestrator.announce")
+        self.hub_orchestrator_service.bootstrap()
         self._ensure_device_record()
 
     def _ensure_device_record(self) -> None:
@@ -175,9 +189,26 @@ class HomeAPI:
             "box_service_healthy": True,
         }
 
+    def external_box_status(self) -> dict:
+        device = self.repository.get_device(DEFAULT_DEVICE_ID) or {}
+        return {
+            "device_id": DEFAULT_DEVICE_ID,
+            "device_name": device.get("device_name", DEFAULT_DEVICE_NAME),
+            "paired": device.get("status") == "paired",
+            "status": device.get("status", "pending_claim"),
+            "family_id": device.get("family_id", ""),
+            "owner_name": device.get("owner_name", ""),
+            "last_seen_at": device.get("last_seen_at", ""),
+            "box_service_healthy": True,
+            "dashboard_path": "/dashboard",
+        }
+
     def get_pairing_payload(self) -> dict:
         device = self.repository.get_device(DEFAULT_DEVICE_ID) or {}
-        claim_url = f"{settings.box_base_url}/claim?device_id={DEFAULT_DEVICE_ID}&claim_token={device.get('claim_token', '')}"
+        claim_url = (
+            f"{settings.gateway_base_url}/mobile"
+            f"?device_id={DEFAULT_DEVICE_ID}&claim_token={device.get('claim_token', '')}"
+        )
         return {
             "device_id": DEFAULT_DEVICE_ID,
             "device_name": device.get("device_name", DEFAULT_DEVICE_NAME),
@@ -188,9 +219,12 @@ class HomeAPI:
                 "type": "homeaihub-claim",
                 "device_id": DEFAULT_DEVICE_ID,
                 "claim_token": device.get("claim_token", ""),
-                "server": settings.box_base_url,
+                "gateway": settings.gateway_base_url,
+                "claim_endpoint": f"{settings.gateway_base_url}/api/gateway/device/claim",
             },
             "paired": device.get("status") == "paired",
+            "pairing_scope": "gateway_only",
+            "transport": "mobile -> gateway -> home box",
         }
 
     def claim_device(self, actor_user_id: str, actor_name: str, family_name: str, claim_token: str) -> dict:
@@ -306,6 +340,58 @@ class HomeAPI:
         recognized = self.ocr_service.recognize(text)
         return self._create_event(text=recognized, source_type="screenshot")
 
+    def ingest_photo(self, text: str) -> dict:
+        recognized = self.ocr_service.recognize(text)
+        return self._create_event(text=recognized, source_type="photo")
+
+    def ingest_voice(self, text: str) -> dict:
+        return self._create_event(text=text, source_type="voice")
+
+    def receive_relay_delivery(
+        self,
+        relay_id: str,
+        source_channel: str,
+        content_kind: str,
+        text: str,
+        filename: str,
+        mime_type: str,
+        byte_size: int,
+        content_base64: str,
+    ) -> dict:
+        summary = text.strip() or filename or content_kind
+        sha256 = hashlib.sha256(content_base64.encode("utf-8")).hexdigest() if content_base64 else ""
+        if content_kind == "message":
+            intake_result = self.ingest_manual(text)
+        elif content_kind == "photo":
+            intake_result = self.ingest_photo(text or filename or "photo received")
+        elif content_kind == "voice":
+            intake_result = self.ingest_voice(text or filename or "voice received")
+        else:
+            return {"ok": False, "error": "unsupported_content_kind"}
+
+        self.repository.create_relay_delivery(
+            {
+                "relay_id": relay_id,
+                "source_channel": source_channel,
+                "content_kind": content_kind,
+                "filename": filename,
+                "mime_type": mime_type,
+                "byte_size": byte_size,
+                "sha256": sha256,
+                "summary": summary[:200],
+                "status": "acknowledged",
+                "acknowledged_at": datetime.now().isoformat(timespec="seconds"),
+            }
+        )
+        return {
+            "ok": True,
+            "relay_id": relay_id,
+            "received": True,
+            "acknowledged_at": datetime.now().isoformat(timespec="seconds"),
+            "content_kind": content_kind,
+            "intake": intake_result,
+        }
+
     def _create_event(self, text: str, source_type: str) -> dict:
         parsed = self.parser_service.parse(text, source_type)
         event_id = self.repository.create_event(
@@ -372,6 +458,9 @@ class HomeAPI:
             "nodes": self.repository.list_nodes(),
             "sessions": self.repository.list_sessions(),
             "recent_commands": self.repository.list_recent_commands(8),
+            "relay_deliveries": self.repository.list_relay_deliveries(8),
+            "voice": self.hub_orchestrator_service.voice_status(),
+            "hub": self.hub_orchestrator_service.hub_overview(),
             "device": self.get_device(),
         }
 
@@ -391,7 +480,9 @@ class HomeAPI:
             "recent_commands": self.repository.list_recent_commands(12),
             "device_state": self.repository.list_device_states(),
             "devices": self.repository.list_devices(),
+            "relay_deliveries": self.repository.list_relay_deliveries(12),
             "pairing": self.get_pairing_payload(),
+            "hub": self.hub_orchestrator_service.hub_overview(),
         }
 
     def execute_control_command(self, session_id: str, agent_name: str, action_name: str, payload: dict) -> dict:
@@ -410,8 +501,27 @@ class HomeAPI:
             response = self.ingest_manual(payload.get("text", ""))
         elif action_name == "intake.screenshot":
             response = self.ingest_screenshot(payload.get("text", ""))
+        elif action_name == "intake.photo":
+            response = self.ingest_photo(payload.get("text", ""))
+        elif action_name == "intake.voice":
+            response = self.ingest_voice(payload.get("text", ""))
         elif action_name == "dashboard.refresh":
-            response = {"ok": True, "dashboard": self.dashboard().get("mode", "dashboard")}
+            response = self.hub_orchestrator_service.refresh_dashboard()
+        elif action_name == "hub.status":
+            response = self.hub_orchestrator_service.hub_overview()
+            target_node = "home-orchestrator"
+        elif action_name == "voice.status":
+            response = self.hub_orchestrator_service.voice_status()
+            target_node = "voice-listener"
+        elif action_name == "voice.wake":
+            response = self.hub_orchestrator_service.handle_voice_wake(payload.get("transcript", ""))
+            target_node = "voice-listener"
+        elif action_name == "announce.play":
+            response = self.hub_orchestrator_service.announce(
+                payload.get("message", ""),
+                payload.get("priority", "normal"),
+            )
+            target_node = "home-orchestrator"
         elif action_name == "tts.play":
             response = self.tts_service.speak(payload.get("message", ""))
         elif action_name == "tv.wake":

@@ -14,44 +14,48 @@
           <div id="date" class="date">----</div>
         </div>
         <div class="topbar-right">
-          <div id="weather" class="pill">天气</div>
+          <div id="weather" class="pill">Weather</div>
           <div id="tvStatus" class="pill">TV</div>
           <div id="status" class="pill status">ONLINE</div>
         </div>
       </header>
 
+      <section id="heroAlert" class="hero-alert hidden"></section>
+
+      <section id="systemStrip" class="system-strip"></section>
+
       <main class="grid">
         <section class="panel">
-          <div class="panel-title">今日日程</div>
+          <div class="panel-title">Today</div>
           <div id="scheduleList" class="schedule-list"></div>
         </section>
 
         <section class="panel">
-          <div class="panel-title">家庭时间轴</div>
+          <div class="panel-title">Family Timeline</div>
           <div id="timeline" class="timeline"></div>
         </section>
 
         <section class="panel">
-          <div class="panel-title">提醒与信息</div>
-          <div class="sub-title">提醒</div>
+          <div class="panel-title">Alerts And Info</div>
+          <div class="sub-title">Reminders</div>
           <div id="reminderList" class="card-list"></div>
-          <div class="sub-title">信息</div>
+          <div class="sub-title">Updates</div>
           <div id="infoList" class="card-list"></div>
         </section>
       </main>
 
       <footer class="footer">
-        <div id="voiceStatus">语音待机中</div>
-        <div id="footerSummary">今日共有 0 个提醒</div>
-        <div id="footerUpdate">系统运行正常</div>
+        <div id="voiceStatus">Voice standby</div>
+        <div id="footerSummary">No reminders</div>
+        <div id="footerUpdate">System healthy</div>
       </footer>
 
       <div id="modal" class="modal hidden">
         <div class="modal-card">
-          <div id="modalTitle" class="modal-title">提醒</div>
+          <div id="modalTitle" class="modal-title">Alert</div>
           <div id="modalMessage" class="modal-message"></div>
           <div id="modalMeta" class="modal-meta"></div>
-          <button id="modalAck">我知道了</button>
+          <button id="modalAck">Acknowledge</button>
         </div>
       </div>
     </div>

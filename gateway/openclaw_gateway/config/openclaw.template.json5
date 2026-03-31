@@ -12,10 +12,10 @@
 
     list: [
       {
-        id: "family-assistant",
+        id: "family-intake-agent",
         default: true,
-        name: "Family Assistant",
-        workspace: "__PROJECT_ROOT__/gateway/openclaw_gateway/workspaces/family-assistant",
+        name: "Family Intake Agent",
+        workspace: "__PROJECT_ROOT__/gateway/openclaw_gateway/workspaces/family-intake-agent",
         tools: {
           profile: "coding",
           allow: [
@@ -34,23 +34,62 @@
           ],
         },
         subagents: {
-          allowAgents: ["home-automation-assistant"],
+          allowAgents: ["household-dashboard-agent", "voice-automation-agent", "home-orchestrator-agent"],
         },
       },
       {
-        id: "home-automation-assistant",
-        name: "Home Automation Assistant",
-        workspace: "__PROJECT_ROOT__/gateway/openclaw_gateway/workspaces/home-automation-assistant",
+        id: "household-dashboard-agent",
+        name: "Household Dashboard Agent",
+        workspace: "__PROJECT_ROOT__/gateway/openclaw_gateway/workspaces/household-dashboard-agent",
         tools: {
           profile: "coding",
           allow: [
+            "read",
             "exec",
             "process",
             "nodes",
             "gateway",
-            "read",
             "sessions_list",
             "sessions_history",
+            "session_status",
+          ],
+          deny: ["write", "edit", "apply_patch"],
+        },
+      },
+      {
+        id: "voice-automation-agent",
+        name: "Voice Automation Agent",
+        workspace: "__PROJECT_ROOT__/gateway/openclaw_gateway/workspaces/voice-automation-agent",
+        tools: {
+          profile: "coding",
+          allow: [
+            "read",
+            "exec",
+            "process",
+            "nodes",
+            "gateway",
+            "sessions_list",
+            "sessions_history",
+            "session_status",
+          ],
+          deny: ["write", "edit", "apply_patch"],
+        },
+      },
+      {
+        id: "home-orchestrator-agent",
+        name: "Home Orchestrator Agent",
+        workspace: "__PROJECT_ROOT__/gateway/openclaw_gateway/workspaces/home-orchestrator-agent",
+        tools: {
+          profile: "coding",
+          allow: [
+            "read",
+            "exec",
+            "process",
+            "nodes",
+            "gateway",
+            "sessions_list",
+            "sessions_history",
+            "sessions_send",
             "session_status",
           ],
           deny: ["write", "edit", "apply_patch"],

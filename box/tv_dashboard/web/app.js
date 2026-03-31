@@ -28,6 +28,13 @@ function card(item) {
   </div>`;
 }
 
+function tile(item) {
+  return `<div class="system-tile">
+    <div class="tile-label">${item.label}</div>
+    <div class="tile-value tone-${item.tone || "green"}">${item.value}</div>
+  </div>`;
+}
+
 function timelineRow(row) {
   const bars = row.events
     .map((event) => `<div class="timeline-bar color-${event.color}"><span>${event.time || "TBD"}</span><strong>${event.title}</strong></div>`)
@@ -42,6 +49,13 @@ function renderPairing(payload) {
   document.getElementById("weather").textContent = "Setup";
   document.getElementById("status").textContent = "UNCLAIMED";
   document.getElementById("tvStatus").textContent = "ONBOARDING";
+  document.getElementById("systemStrip").innerHTML = [
+    tile({ label: "Home Mode", value: "pairing", tone: "green" }),
+    tile({ label: "Dashboard", value: "onboarding", tone: "blue" }),
+    tile({ label: "Voice", value: "idle", tone: "orange" }),
+    tile({ label: "Agent", value: "pairing-agent", tone: "pink" }),
+  ].join("");
+  document.getElementById("heroAlert").classList.add("hidden");
 
   document.getElementById("scheduleList").innerHTML = `
     <div class="info-card priority-normal">
@@ -82,15 +96,32 @@ function renderDashboard(payload) {
   document.getElementById("weather").textContent = payload.header.weather;
   document.getElementById("status").textContent = payload.header.status;
   document.getElementById("tvStatus").textContent = `${payload.header.tv_power.toUpperCase()} / ${payload.header.tv_input}`;
+  document.getElementById("systemStrip").innerHTML = (payload.system_tiles || []).map(tile).join("");
   document.getElementById("scheduleList").innerHTML = payload.today_schedule.map(eventRow).join("") || '<div class="empty">No schedule</div>';
   document.getElementById("timeline").innerHTML = payload.timeline.map(timelineRow).join("") || '<div class="empty">No timeline</div>';
   document.getElementById("reminderList").innerHTML = payload.reminders.map(card).join("") || '<div class="empty">No reminders</div>';
   document.getElementById("infoList").innerHTML = payload.infos.map(card).join("") || '<div class="empty">No info</div>';
   document.getElementById("voiceStatus").textContent = payload.footer.voice_status;
-  document.getElementById("footerSummary").textContent = payload.footer.summary;
-  document.getElementById("footerUpdate").textContent = `Recent update: ${payload.footer.recent_update}`;
+  document.getElementById("footerSummary").textContent = `${payload.footer.summary} | ${payload.footer.active_agent}`;
+  document.getElementById("footerUpdate").textContent = `Recent update: ${payload.footer.recent_update} | Route: ${payload.footer.last_route}`;
+  renderHero(payload.hero_alert);
   state.notifications = payload.notifications || [];
   renderModal();
+}
+
+function renderHero(alert) {
+  const hero = document.getElementById("heroAlert");
+  if (!alert) {
+    hero.classList.add("hidden");
+    hero.innerHTML = "";
+    return;
+  }
+  hero.classList.remove("hidden");
+  hero.innerHTML = `
+    <div class="hero-title">Priority Alert</div>
+    <div class="hero-message">${alert.title}</div>
+    <div class="hero-meta">${alert.message}</div>
+  `;
 }
 
 function renderModal() {

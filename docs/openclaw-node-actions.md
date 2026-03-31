@@ -30,6 +30,8 @@ python scripts/box_node_bridge.py health
 python scripts/box_node_bridge.py device-status
 python scripts/box_node_bridge.py pairing-payload
 python scripts/box_node_bridge.py dashboard
+python scripts/box_node_bridge.py hub-overview
+python scripts/box_node_bridge.py voice-status
 python scripts/box_node_bridge.py mobile-status
 ```
 
@@ -38,6 +40,8 @@ Family actions:
 ```bash
 python scripts/box_node_bridge.py manual-intake "today 3pm mom dentist"
 python scripts/box_node_bridge.py screenshot-intake "school notice parent meeting 2026-04-12 15:00"
+python scripts/box_node_bridge.py photo-intake "package left at door"
+python scripts/box_node_bridge.py voice-intake "tomorrow 8am take medicine"
 ```
 
 Automation actions:
@@ -46,6 +50,8 @@ Automation actions:
 python scripts/box_node_bridge.py refresh-dashboard
 python scripts/box_node_bridge.py wake-tv
 python scripts/box_node_bridge.py tts "Leave home in 15 minutes"
+python scripts/box_node_bridge.py announce "Emergency weather alert" --priority urgent
+python scripts/box_node_bridge.py voice-wake "Hey Home, wake the TV"
 ```
 
 Pairing actions:
@@ -92,4 +98,4 @@ Because approval policy is environment-specific, the safest approach is:
 
 ## Intended agent usage
 
-For real OpenClaw usage, `family-assistant` and `home-automation-assistant` should prefer node exec of this bridge script rather than direct arbitrary shell commands.
+For real OpenClaw usage, `family-intake-agent`, `household-dashboard-agent`, `voice-automation-agent`, and `home-orchestrator-agent` should prefer node exec of this bridge script rather than direct arbitrary shell commands.

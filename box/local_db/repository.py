@@ -116,6 +116,21 @@ class LocalRepository:
                     result TEXT NOT NULL,
                     created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
                 );
+
+                CREATE TABLE IF NOT EXISTS relay_deliveries (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    relay_id TEXT NOT NULL UNIQUE,
+                    source_channel TEXT NOT NULL,
+                    content_kind TEXT NOT NULL,
+                    filename TEXT NOT NULL DEFAULT '',
+                    mime_type TEXT NOT NULL DEFAULT '',
+                    byte_size INTEGER NOT NULL DEFAULT 0,
+                    sha256 TEXT NOT NULL DEFAULT '',
+                    summary TEXT NOT NULL DEFAULT '',
+                    status TEXT NOT NULL DEFAULT 'received',
+                    created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                    acknowledged_at TEXT NOT NULL DEFAULT ''
+                );
                 """
             )
 
@@ -415,5 +430,44 @@ class LocalRepository:
             rows = conn.execute(
                 "SELECT * FROM device_claims WHERE device_id = ? ORDER BY id DESC",
                 (device_id,),
+            ).fetchall()
+            return [dict(row) for row in rows]
+
+    def create_relay_delivery(self, payload: dict) -> int:
+        fields = (
+            "relay_id",
+            "source_channel",
+            "content_kind",
+            "filename",
+            "mime_type",
+            "byte_size",
+            "sha256",
+            "summary",
+            "status",
+            "acknowledged_at",
+        )
+        values = [payload.get(field, "") for field in fields]
+        with self._connect() as conn:
+            cursor = conn.execute(
+                f"INSERT INTO relay_deliveries ({', '.join(fields)}) VALUES ({', '.join('?' for _ in fields)})",
+                values,
+            )
+            return int(cursor.lastrowid)
+
+    def get_relay_delivery(self, relay_id: str) -> Optional[dict]:
+        with self._connect() as conn:
+            row = conn.execute("SELECT * FROM relay_deliveries WHERE relay_id = ?", (relay_id,)).fetchone()
+            return dict(row) if row else None
+
+    def list_relay_deliveries(self, limit: int = 20) -> list[dict]:
+        with self._connect() as conn:
+            rows = conn.execute(
+                """
+                SELECT *
+                FROM relay_deliveries
+                ORDER BY id DESC
+                LIMIT ?
+                """,
+                (limit,),
             ).fetchall()
             return [dict(row) for row in rows]
