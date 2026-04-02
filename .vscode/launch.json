@@ -30,7 +30,7 @@
         "HOMEAIHUB_TTS_BACKEND": "google_cloud",
         "HOMEAIHUB_TTS_VOICE_NAME": "",
         "HOMEAIHUB_TTS_RATE": "0",
-        "HOMEAIHUB_GOOGLE_TTS_API_KEY": "AIzaSyDX_b5k7rVPHZ_vLWgMp2nBTdBOwUYNyms",
+        "HOMEAIHUB_GOOGLE_TTS_API_KEY": "",
         "HOMEAIHUB_GOOGLE_TTS_VOICE_NAME": "en-US-Neural2-F",
         "HOMEAIHUB_GOOGLE_TTS_LANGUAGE_CODE": "en-US",
         "HOMEAIHUB_GOOGLE_TTS_GENDER": "FEMALE",
@@ -76,3 +76,4 @@
     }
   ]
 }
+
