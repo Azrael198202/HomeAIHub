@@ -131,6 +131,38 @@ class LocalRepository:
                     created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
                     acknowledged_at TEXT NOT NULL DEFAULT ''
                 );
+                
+
+                CREATE TABLE IF NOT EXISTS openclaw_tasks (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    task_id TEXT NOT NULL UNIQUE,
+                    session_id TEXT NOT NULL DEFAULT '',
+                    source TEXT NOT NULL DEFAULT 'box',
+                    actor_name TEXT NOT NULL DEFAULT 'system',
+                    agent_name TEXT NOT NULL,
+                    action_name TEXT NOT NULL,
+                    target_node TEXT NOT NULL,
+                    status TEXT NOT NULL DEFAULT 'queued',
+                    request_payload TEXT NOT NULL DEFAULT '{}',
+                    response_payload TEXT NOT NULL DEFAULT '{}',
+                    created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                    completed_at TEXT NOT NULL DEFAULT ''
+                );
+                
+
+                CREATE TABLE IF NOT EXISTS voice_input_sessions (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    voice_session_id TEXT NOT NULL UNIQUE,
+                    source TEXT NOT NULL DEFAULT 'local-mic',
+                    input_kind TEXT NOT NULL DEFAULT 'transcript',
+                    transcript TEXT NOT NULL DEFAULT '',
+                    asr_backend TEXT NOT NULL DEFAULT 'mock_text',
+                    status TEXT NOT NULL DEFAULT 'processing',
+                    audio_path TEXT NOT NULL DEFAULT '',
+                    result_summary TEXT NOT NULL DEFAULT '',
+                    created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                    completed_at TEXT NOT NULL DEFAULT ''
+                );
                 """
             )
 
@@ -471,3 +503,146 @@ class LocalRepository:
                 (limit,),
             ).fetchall()
             return [dict(row) for row in rows]
+
+
+    def create_openclaw_task(self, payload: dict) -> int:
+        fields = (
+            "task_id",
+            "session_id",
+            "source",
+            "actor_name",
+            "agent_name",
+            "action_name",
+            "target_node",
+            "status",
+            "request_payload",
+            "response_payload",
+        )
+        values = [payload.get(field, "") for field in fields]
+        with self._connect() as conn:
+            cursor = conn.execute(
+                f"INSERT INTO openclaw_tasks ({', '.join(fields)}) VALUES ({', '.join('?' for _ in fields)})",
+                values,
+            )
+            return int(cursor.lastrowid)
+
+    def complete_openclaw_task(self, task_id: str, status: str, response_payload: str, completed_at: str) -> None:
+        with self._connect() as conn:
+            conn.execute(
+                """
+                UPDATE openclaw_tasks
+                SET status = ?, response_payload = ?, completed_at = ?
+                WHERE task_id = ?
+                """,
+                (status, response_payload, completed_at, task_id),
+            )
+
+    def get_openclaw_task(self, task_id: str) -> Optional[dict]:
+        with self._connect() as conn:
+            row = conn.execute("SELECT * FROM openclaw_tasks WHERE task_id = ?", (task_id,)).fetchone()
+            return dict(row) if row else None
+
+    def list_openclaw_tasks(self, limit: int = 20) -> list[dict]:
+        with self._connect() as conn:
+            rows = conn.execute(
+                """
+                SELECT *
+                FROM openclaw_tasks
+                ORDER BY id DESC
+                LIMIT ?
+                """,
+                (limit,),
+            ).fetchall()
+            return [dict(row) for row in rows]
+
+
+    def create_voice_input_session(self, payload: dict) -> int:
+        fields = (
+            "voice_session_id",
+            "source",
+            "input_kind",
+            "transcript",
+            "asr_backend",
+            "status",
+            "audio_path",
+        )
+        values = [payload.get(field, "") for field in fields]
+        with self._connect() as conn:
+            cursor = conn.execute(
+                f"INSERT INTO voice_input_sessions ({', '.join(fields)}) VALUES ({', '.join('?' for _ in fields)})",
+                values,
+            )
+            return int(cursor.lastrowid)
+
+    def update_voice_input_session_asr(self, voice_session_id: str, transcript: str, asr_backend: str, audio_path: str) -> None:
+        with self._connect() as conn:
+            conn.execute(
+                """
+                UPDATE voice_input_sessions
+                SET transcript = ?, asr_backend = ?, audio_path = ?
+                WHERE voice_session_id = ?
+                """,
+                (transcript, asr_backend, audio_path, voice_session_id),
+            )
+
+    def complete_voice_input_session(self, voice_session_id: str, status: str, result_summary: str, completed_at: str) -> None:
+        with self._connect() as conn:
+            conn.execute(
+                """
+                UPDATE voice_input_sessions
+                SET status = ?, result_summary = ?, completed_at = ?
+                WHERE voice_session_id = ?
+                """,
+                (status, result_summary, completed_at, voice_session_id),
+            )
+
+    def list_voice_input_sessions(self, limit: int = 20) -> list[dict]:
+        with self._connect() as conn:
+            rows = conn.execute(
+                """
+                SELECT *
+                FROM voice_input_sessions
+                ORDER BY id DESC
+                LIMIT ?
+                """,
+                (limit,),
+            ).fetchall()
+            return [dict(row) for row in rows]
+
+    def get_latest_voice_input_session(self, require_transcript: bool = False) -> Optional[dict]:
+        query = """
+            SELECT *
+            FROM voice_input_sessions
+        """
+        params: tuple = ()
+        if require_transcript:
+            query += """
+                WHERE status = 'completed'
+                  AND TRIM(COALESCE(transcript, '')) <> ''
+            """
+        query += """
+            ORDER BY id DESC
+            LIMIT 1
+        """
+        with self._connect() as conn:
+            row = conn.execute(query, params).fetchone()
+            return dict(row) if row else None
+
+    def prune_voice_input_sessions(self, retain_seconds: int, max_records: int) -> int:
+        retain_seconds = max(60, int(retain_seconds))
+        max_records = max(20, int(max_records))
+        with self._connect() as conn:
+            cursor = conn.execute(
+                """
+                DELETE FROM voice_input_sessions
+                WHERE id NOT IN (
+                    SELECT id
+                    FROM voice_input_sessions
+                    ORDER BY id DESC
+                    LIMIT ?
+                )
+                OR created_at < datetime('now', ?)
+                """,
+                (max_records, f"-{retain_seconds} seconds"),
+            )
+            return int(cursor.rowcount or 0)

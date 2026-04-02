@@ -1,0 +1,15 @@
+[Unit]
+Description=HomeAIHub Dashboard Kiosk
+After=graphical.target homeaihub-box.service
+Wants=homeaihub-box.service
+
+[Service]
+Type=simple
+User=__BOX_USER__
+Environment=DISPLAY=:0
+ExecStart=/usr/bin/chromium --kiosk --app=http://127.0.0.1:8090/dashboard --noerrdialogs --disable-session-crashed-bubble --check-for-update-interval=31536000
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=graphical.target

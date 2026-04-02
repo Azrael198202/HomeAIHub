@@ -226,15 +226,20 @@ class OpenClawGateway:
         mime_type: str,
         content_base64: str,
         source_channel: str = "railway",
+        device_id: str = "",
     ) -> dict:
         relay_id = str(uuid.uuid4())
         result: dict
         try:
             if content_base64:
                 base64.b64decode(content_base64.encode("utf-8"), validate=True)
-            box = railway_relay_store.get_primary_box()
+            box = railway_relay_store.get_box(device_id) if device_id else railway_relay_store.get_primary_box()
             if not box:
                 return {"ok": False, "error": "no_registered_box"}
+            if box.get("pairing_status") != "paired":
+                return {"ok": False, "error": "box_not_paired", "device_id": box.get("device_id", "")}
+            if box.get("box_status") != "online":
+                return {"ok": False, "error": "box_offline", "device_id": box.get("device_id", "")}
             job = railway_relay_store.create_relay_job(
                 {
                     "relay_id": relay_id,
@@ -670,6 +675,8 @@ class GatewayHandler(BaseHTTPRequestHandler):
             return "text/css; charset=utf-8"
         if filename.endswith(".js"):
             return "application/javascript; charset=utf-8"
+        if filename.endswith(".svg"):
+            return "image/svg+xml; charset=utf-8"
         return "text/plain; charset=utf-8"
 
 

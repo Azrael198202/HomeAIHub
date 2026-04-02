@@ -1,0 +1,16 @@
+[Unit]
+Description=HomeAIHub Box Service
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=__BOX_USER__
+WorkingDirectory=__REPO_ROOT__
+Environment=PYTHONUNBUFFERED=1
+ExecStart=/bin/bash __REPO_ROOT__/scripts/start-box-service.sh prod
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

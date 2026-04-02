@@ -1,0 +1,24 @@
+@echo off
+setlocal
+set "REPO_ROOT=%~dp0.."
+cd /d "%REPO_ROOT%"
+
+set "HOMEAIHUB_HOST=127.0.0.1"
+set "HOMEAIHUB_PORT=8080"
+set "HOMEAIHUB_BOX_HOST=127.0.0.1"
+set "HOMEAIHUB_BOX_PORT=8090"
+set "HOMEAIHUB_GATEWAY_BASE_URL=http://127.0.0.1:8080"
+set "HOMEAIHUB_RAILWAY_PUBLIC_BASE_URL=http://127.0.0.1:8080"
+set "HOMEAIHUB_RELAY_TEMP_DIR=%REPO_ROOT%\data\relay-temp"
+set "HOMEAIHUB_DB_NAME=home_ai_hub.preview.db"
+set "HOMEAIHUB_ASR_BACKEND=auto"
+set "HOMEAIHUB_ASR_WHISPER_MODEL=base"
+set "HOMEAIHUB_MIC_BACKEND=auto"
+set "HOMEAIHUB_MIC_DURATION_SECONDS=4"
+set "HOMEAIHUB_MIC_SAMPLE_RATE=16000"
+set "HOMEAIHUB_MIC_CHANNELS=1"
+set "HOMEAIHUB_MIC_DEVICE_INDEX=-1"
+
+if not exist "%REPO_ROOT%\data\relay-temp" mkdir "%REPO_ROOT%\data\relay-temp"
+
+python -m home_ai_hub

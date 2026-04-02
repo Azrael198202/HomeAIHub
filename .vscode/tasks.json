@@ -1,0 +1,23 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "curl: box health",
+      "type": "shell",
+      "command": "curl http://127.0.0.1:8090/health",
+      "problemMatcher": []
+    },
+    {
+      "label": "curl: voice devices",
+      "type": "shell",
+      "command": "curl http://127.0.0.1:8090/api/box/voice/input/devices",
+      "problemMatcher": []
+    },
+    {
+      "label": "curl: voice status",
+      "type": "shell",
+      "command": "curl http://127.0.0.1:8090/api/box/voice/input/status",
+      "problemMatcher": []
+    }
+  ]
+}

@@ -1,0 +1,4 @@
+[Seat:*]
+autologin-user=__BOX_USER__
+autologin-user-timeout=0
+user-session=__DESKTOP_SESSION__

@@ -40,6 +40,7 @@ Home Box
 - `gateway/` is only the public app edge, pairing surface, and remote relay.
 - `box/` is the private household brain and source of truth.
 - `box/hub_orchestrator/` coordinates household routes and active agent state.
+- `box/openclaw_runtime/` is the local OpenClaw execution layer for agent registration, action dispatch, and task history.
 - `box/event_parser/service.py` still provides the local OCR, parsing, reminder scan, TTS, TV control, and dashboard payload assembly used by the box.
 - `box/tv_dashboard/web/` is the passive HDMI family surface.
 - `scripts/box_node_bridge.py` is the stable bridge for OpenClaw node exec.
@@ -63,10 +64,10 @@ Home Box
 ### 3. OpenClaw orchestration
 
 1. Gateway session opens with a role policy.
-2. OpenClaw agent chooses a capability-level action.
-3. Gateway relays the action to the box control plane.
-4. Hub orchestrator or domain service executes locally.
-5. Result is logged in the box command history.
+2. Gateway or box API submits an agent action into `box/openclaw_runtime/`.
+3. The local OpenClaw runtime resolves the target agent and action handler.
+4. Hub orchestrator or domain service executes through that handler.
+5. Result is logged in `openclaw_tasks`, and session-based control-plane calls also land in the command history.
 
 ## Next Refactor Checklist
 
